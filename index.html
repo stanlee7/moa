@@ -24,6 +24,18 @@
            font-weight:600; border-radius:10px; cursor:pointer; }
   button:disabled { opacity:.5; cursor:not-allowed; }
   .hint { color:var(--sub); font-size:13px; }
+
+  /* 진행바 (다운로딩 느낌) */
+  .progress { margin-top:20px; display:none; }
+  .progress.show { display:block; }
+  .bar-track { height:10px; background:var(--line); border-radius:6px; overflow:hidden; }
+  .bar-fill { height:100%; width:0%; border-radius:6px;
+              background:linear-gradient(90deg,#5b8cff,#8a6cff);
+              transition:width .4s ease; }
+  .bar-meta { display:flex; justify-content:space-between; margin-top:10px; font-size:13px; }
+  .bar-stage { color:var(--fg); }
+  .bar-pct { color:var(--accent); font-weight:700; font-variant-numeric:tabular-nums; }
+
   .out { margin-top:28px; background:var(--card); border:1px solid var(--line);
          border-radius:12px; padding:24px; display:none; }
   .out.show { display:block; }
@@ -31,9 +43,6 @@
   .out th,.out td { border:1px solid var(--line); padding:8px 10px; text-align:left; }
   .out h1,.out h2,.out h3 { margin:18px 0 8px; }
   .out code { background:#0b0d10; padding:2px 6px; border-radius:5px; }
-  .spinner { display:inline-block; width:16px; height:16px; border:2px solid var(--sub);
-             border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
-  @keyframes spin { to { transform:rotate(360deg); } }
   .foot { margin-top:40px; color:var(--sub); font-size:13px; text-align:center; }
   .foot a { color:var(--accent); text-decoration:none; }
 </style>
@@ -47,7 +56,15 @@
   <textarea id="q" placeholder="무엇이든 물어보세요. 예) 2026년 1인 가구를 위한 정부 지원제도를 정리해줘"></textarea>
   <div class="row">
     <button id="go" onclick="ask()">보내기</button>
-    <span class="hint" id="hint">답변까지 최대 1분 — 모델들이 순서대로 협업합니다.</span>
+    <span class="hint" id="hint">답변까지 최대 1분 정도 걸려요.</span>
+  </div>
+
+  <div class="progress" id="prog">
+    <div class="bar-track"><div class="bar-fill" id="bar"></div></div>
+    <div class="bar-meta">
+      <span class="bar-stage" id="stage">시작하는 중...</span>
+      <span class="bar-pct" id="pct">0%</span>
+    </div>
   </div>
 
   <div class="out" id="out"></div>
@@ -56,15 +73,48 @@
 </div>
 
 <script>
+// 실제 파이프라인 순서에 맞춘 단계 (시작 경과초, 라벨)
+const STAGES = [
+  { at: 0,  text: "🧠 계획 세우는 중" },
+  { at: 6,  text: "👥 여러 모델이 각자 답하는 중" },
+  { at: 22, text: "🔍 답변 교차 검증 중" },
+  { at: 38, text: "✍️ 최종 답변 종합 중" },
+];
+
+let timer = null;
+
+function startProgress() {
+  const bar = document.getElementById('bar');
+  const pct = document.getElementById('pct');
+  const stage = document.getElementById('stage');
+  document.getElementById('prog').className = 'progress show';
+  const t0 = Date.now();
+  timer = setInterval(() => {
+    const el = (Date.now() - t0) / 1000;
+    // 95%까지 점점 느리게 차오름 (응답 오면 100%로 마무리)
+    const p = Math.min(95, 100 * (1 - Math.exp(-el / 22)));
+    bar.style.width = p.toFixed(1) + '%';
+    pct.textContent = Math.floor(p) + '%';
+    const s = STAGES.filter(s => el >= s.at).pop();
+    if (s) stage.textContent = s.text;
+  }, 200);
+}
+
+function finishProgress(success) {
+  clearInterval(timer);
+  document.getElementById('bar').style.width = '100%';
+  document.getElementById('pct').textContent = '100%';
+  document.getElementById('stage').textContent = success ? '✅ 완료' : '⚠️ 실패';
+}
+
 async function ask() {
   const q = document.getElementById('q').value.trim();
   if (!q) return;
   const btn = document.getElementById('go');
   const out = document.getElementById('out');
-  const hint = document.getElementById('hint');
   btn.disabled = true;
-  hint.innerHTML = '<span class="spinner"></span> 모델들이 협업 중... (최대 1분)';
   out.className = 'out'; out.innerHTML = '';
+  startProgress();
   try {
     const res = await fetch('/v1/chat/completions', {
       method: 'POST',
@@ -74,13 +124,13 @@ async function ask() {
     if (!res.ok) throw new Error('서버 응답 ' + res.status);
     const data = await res.json();
     const md = data.choices[0].message.content;
+    finishProgress(true);
     out.innerHTML = window.marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
     out.className = 'out show';
-    hint.textContent = '완료 ✓';
   } catch (e) {
+    finishProgress(false);
     out.textContent = '오류: ' + e.message + ' (무료 모델 호출 한도일 수 있어요. 잠시 후 다시 시도)';
     out.className = 'out show';
-    hint.textContent = '';
   } finally {
     btn.disabled = false;
   }
