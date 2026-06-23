@@ -1,7 +1,7 @@
 # 자가호스팅 가이드 (vLLM)
 
 OpenRouter 대신 **내 GPU에서 직접 모델을 서빙**하면 외부 API 의존·데이터 유출이 0이 된다.
-fugu-kr는 베이스 URL만 바꾸면 되도록 설계됨 (`LLM_BASE_URL` 환경변수).
+moa는 베이스 URL만 바꾸면 되도록 설계됨 (`LLM_BASE_URL` 환경변수).
 
 ## 1. vLLM으로 미국 오픈모델 서빙 (GPU 필요)
 
@@ -16,12 +16,12 @@ vllm serve meta-llama/Llama-3.3-70B-Instruct \
 
 vLLM은 `http://localhost:8000/v1/chat/completions` 로 **OpenAI 호환** 엔드포인트를 연다.
 
-## 2. fugu-kr를 자가호스팅에 연결
+## 2. moa를 자가호스팅에 연결
 
 ```bash
 export LLM_BASE_URL=http://localhost:8000/v1/chat/completions
 export OPENROUTER_API_KEY=local-key
-export FUGU_MOCK=0
+export MOA_MOCK=0
 uvicorn server:app --port 8080
 ```
 

@@ -2,13 +2,13 @@
 # render.com → New → Blueprint → 이 repo 선택하면 자동 인식.
 services:
   - type: web
-    name: fugu-kr
+    name: moa
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
-      - key: FUGU_MOCK
+      - key: MOA_MOCK
         value: "0"
       - key: OPENROUTER_API_KEY
         sync: false   # 대시보드에서 직접 입력 (비밀값, 코드에 안 올라감)

@@ -7,7 +7,7 @@ PROMPT = sys.argv[1] if len(sys.argv) > 1 else \
 
 resp = httpx.post(
     "http://localhost:8080/v1/chat/completions",
-    json={"model": "fugu-kr", "messages": [{"role": "user", "content": PROMPT}]},
+    json={"model": "moa", "messages": [{"role": "user", "content": PROMPT}]},
     timeout=180,
 )
 resp.raise_for_status()

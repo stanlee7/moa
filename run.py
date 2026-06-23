@@ -10,9 +10,14 @@ from orchestrator import orchestrate
 prompt = sys.argv[1] if len(sys.argv) > 1 else \
     "한국이 무료 오픈모델만으로 프런티어급 서비스를 만들 수 있을지 근거와 함께 분석해줘"
 
-answer = asyncio.run(orchestrate(prompt))
+result = asyncio.run(orchestrate(prompt))
+
+models = "\n".join(
+    f"  - {m['role']}: {m['model']}" + (f" (신뢰도 {m['weight']})" if "weight" in m else "")
+    for m in result["used"]
+)
 
 with open("answer.txt", "w", encoding="utf-8") as f:
-    f.write(f"[질문]\n{prompt}\n\n[답변]\n{answer}\n")
+    f.write(f"[질문]\n{prompt}\n\n[참여 모델]\n{models}\n\n[답변]\n{result['answer']}\n")
 
 print("=== 완료: answer.txt 파일에 저장됨 ===")

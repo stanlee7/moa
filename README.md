@@ -1,7 +1,8 @@
-# fugu-kr 🐡🇰🇷
+# moa 🧩🇰🇷
 
-**하나의 API처럼 보이지만, 뒤에서는 오픈모델 팀이 움직이는** 오케스트레이션 게이트웨이.
-일본 Sakana의 Fugu 아이디어를, 한국에서 **오픈웨이트만으로** 재현한 최소 구현체.
+**하나의 API처럼 보이지만, 뒤에서는 여러 무료 오픈모델을 '모아' 팀으로 움직이는** 오케스트레이션 게이트웨이.
+일본 Sakana의 Fugu에서 영감을 받아, 한국에서 **오픈모델만으로** 재현한 최소 구현체.
+이름 `moa` = "모아"(여러 모델을 모으다) + 기술용어 **MoA**(Mixture of Agents).
 
 > 핵심 명제: 프런티어 모델을 직접 훈련하지 않아도, **여러 오픈모델을 잘 지휘하면**
 > 단일 프런티어 모델급 경험을 만들 수 있다. 모델이 아니라 **오케스트레이션이 경쟁력**.
@@ -35,7 +36,7 @@ pip install -r requirements.txt
 uvicorn server:app --reload --port 8080
 
 # 2) 무료 US 오픈모델로 (OpenRouter 키만 — 카드 등록 불필요)
-cp .env.example .env   # OPENROUTER_API_KEY 입력, FUGU_MOCK=0
+cp .env.example .env   # OPENROUTER_API_KEY 입력, MOA_MOCK=0
 uvicorn server:app --reload --port 8080
 ```
 
@@ -44,7 +45,7 @@ uvicorn server:app --reload --port 8080
 ```bash
 curl http://localhost:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -d '{"model":"fugu-kr","messages":[{"role":"user","content":"한국이 오픈소스로 프런티어급 서비스를 만들 수 있을까? 근거와 함께 분석해줘"}]}'
+  -d '{"model":"moa","messages":[{"role":"user","content":"한국이 오픈소스로 프런티어급 서비스를 만들 수 있을까? 근거와 함께 분석해줘"}]}'
 ```
 
 ## 일반인에게 배포 (Render 무료)
@@ -54,7 +55,7 @@ curl http://localhost:8080/v1/chat/completions \
 1. [render.com](https://render.com) 가입(GitHub 로그인) → **New → Blueprint**
 2. 이 repo 선택 → `render.yaml` 자동 인식 → **Apply**
 3. 환경변수 **OPENROUTER_API_KEY** 에 본인 키 입력 (한 번)
-4. 몇 분 뒤 `https://fugu-kr.onrender.com` 같은 주소 생성 → 끝
+4. 몇 분 뒤 `https://moa.onrender.com` 같은 주소 생성 → 끝
 
 > 무료 플랜은 15분 미사용 시 잠들어 첫 접속이 ~50초 느림(콜드스타트). 무료 모델 호출 한도도 공유됨.
 

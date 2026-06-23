@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>fugu-kr · 오픈모델 AI 팀</title>
+<title>moa · 오픈모델 AI 팀</title>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   :root { --bg:#0b0d10; --card:#15181d; --line:#262b33; --fg:#e8eaed; --sub:#9aa3af; --accent:#5b8cff; }
@@ -12,7 +12,7 @@
          background:var(--bg); color:var(--fg); line-height:1.6; }
   .wrap { max-width:780px; margin:0 auto; padding:40px 20px 80px; }
   h1 { font-size:26px; margin:0 0 4px; letter-spacing:-.5px; }
-  h1 .fish { font-size:30px; }
+  h1 .ico { font-size:28px; }
   .tag { color:var(--sub); font-size:14px; margin-bottom:28px; }
   .tag b { color:var(--accent); }
   textarea { width:100%; min-height:96px; resize:vertical; padding:16px; font-size:15px;
@@ -30,13 +30,23 @@
   .progress.show { display:block; }
   .bar-track { height:10px; background:var(--line); border-radius:6px; overflow:hidden; }
   .bar-fill { height:100%; width:0%; border-radius:6px;
-              background:linear-gradient(90deg,#5b8cff,#8a6cff);
-              transition:width .4s ease; }
+              background:linear-gradient(90deg,#5b8cff,#8a6cff); transition:width .4s ease; }
   .bar-meta { display:flex; justify-content:space-between; margin-top:10px; font-size:13px; }
   .bar-stage { color:var(--fg); }
   .bar-pct { color:var(--accent); font-weight:700; font-variant-numeric:tabular-nums; }
 
-  .out { margin-top:28px; background:var(--card); border:1px solid var(--line);
+  /* 참여 모델 패널 */
+  .models { margin-top:24px; padding:16px 18px; background:var(--card);
+            border:1px solid var(--line); border-radius:12px; display:none; }
+  .models.show { display:block; }
+  .models-h { font-size:13px; color:var(--sub); margin-bottom:12px; }
+  .m-row { display:flex; gap:12px; align-items:flex-start; margin:7px 0; }
+  .m-role { font-size:13px; color:var(--fg); min-width:64px; }
+  .m-list { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { font-size:12px; padding:3px 10px; border-radius:20px;
+          background:#0b0d10; border:1px solid var(--line); color:var(--accent); }
+
+  .out { margin-top:24px; background:var(--card); border:1px solid var(--line);
          border-radius:12px; padding:24px; display:none; }
   .out.show { display:block; }
   .out table { border-collapse:collapse; width:100%; margin:12px 0; font-size:14px; }
@@ -49,8 +59,8 @@
 </head>
 <body>
 <div class="wrap">
-  <h1><span class="fish">🐡</span> fugu-kr</h1>
-  <p class="tag">하나의 입력 뒤에서 <b>여러 무료 오픈모델이 팀으로 협업</b>합니다 ·
+  <h1><span class="ico">🧩</span> moa</h1>
+  <p class="tag">하나의 입력 뒤에서 <b>여러 무료 오픈모델을 모아</b> 팀으로 답합니다 ·
      계획 → 분담 → 검증 → 종합</p>
 
   <textarea id="q" placeholder="무엇이든 물어보세요. 예) 2026년 1인 가구를 위한 정부 지원제도를 정리해줘"></textarea>
@@ -67,31 +77,28 @@
     </div>
   </div>
 
+  <div class="models" id="models"></div>
   <div class="out" id="out"></div>
 
-  <p class="foot">오픈소스 · <a href="https://github.com/stanlee7/fugu-kr" target="_blank">github.com/stanlee7/fugu-kr</a></p>
+  <p class="foot">오픈소스 · <a href="https://github.com/stanlee7/moa" target="_blank">github.com/stanlee7/moa</a></p>
 </div>
 
 <script>
-// 실제 파이프라인 순서에 맞춘 단계 (시작 경과초, 라벨)
 const STAGES = [
   { at: 0,  text: "🧠 계획 세우는 중" },
   { at: 6,  text: "👥 여러 모델이 각자 답하는 중" },
   { at: 22, text: "🔍 답변 교차 검증 중" },
   { at: 38, text: "✍️ 최종 답변 종합 중" },
 ];
-
 let timer = null;
 
 function startProgress() {
-  const bar = document.getElementById('bar');
-  const pct = document.getElementById('pct');
-  const stage = document.getElementById('stage');
+  const bar = document.getElementById('bar'), pct = document.getElementById('pct'),
+        stage = document.getElementById('stage');
   document.getElementById('prog').className = 'progress show';
   const t0 = Date.now();
   timer = setInterval(() => {
     const el = (Date.now() - t0) / 1000;
-    // 95%까지 점점 느리게 차오름 (응답 오면 100%로 마무리)
     const p = Math.min(95, 100 * (1 - Math.exp(-el / 22)));
     bar.style.width = p.toFixed(1) + '%';
     pct.textContent = Math.floor(p) + '%';
@@ -99,7 +106,6 @@ function startProgress() {
     if (s) stage.textContent = s.text;
   }, 200);
 }
-
 function finishProgress(success) {
   clearInterval(timer);
   document.getElementById('bar').style.width = '100%';
@@ -107,24 +113,41 @@ function finishProgress(success) {
   document.getElementById('stage').textContent = success ? '✅ 완료' : '⚠️ 실패';
 }
 
+function prettyModel(id) { return id.split('/').pop().replace(':free', ''); }
+
+function renderModels(used) {
+  const box = document.getElementById('models');
+  if (!used || !used.length) { box.className = 'models'; return; }
+  const groups = {};
+  used.forEach(u => { (groups[u.role] = groups[u.role] || []).push(prettyModel(u.model)); });
+  let html = '<div class="models-h">이 답변에 참여한 무료 오픈모델</div>';
+  for (const role in groups) {
+    const chips = [...new Set(groups[role])].map(n => `<span class="chip">${n}</span>`).join('');
+    html += `<div class="m-row"><span class="m-role">${role}</span><span class="m-list">${chips}</span></div>`;
+  }
+  box.innerHTML = html;
+  box.className = 'models show';
+}
+
 async function ask() {
   const q = document.getElementById('q').value.trim();
   if (!q) return;
-  const btn = document.getElementById('go');
-  const out = document.getElementById('out');
+  const btn = document.getElementById('go'), out = document.getElementById('out');
   btn.disabled = true;
   out.className = 'out'; out.innerHTML = '';
+  document.getElementById('models').className = 'models';
   startProgress();
   try {
     const res = await fetch('/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'fugu-kr', messages: [{ role: 'user', content: q }] })
+      body: JSON.stringify({ model: 'moa', messages: [{ role: 'user', content: q }] })
     });
     if (!res.ok) throw new Error('서버 응답 ' + res.status);
     const data = await res.json();
     const md = data.choices[0].message.content;
     finishProgress(true);
+    renderModels(data.moa_models);
     out.innerHTML = window.marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
     out.className = 'out show';
   } catch (e) {

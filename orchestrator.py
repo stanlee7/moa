@@ -1,4 +1,4 @@
-"""Fugu식 오케스트레이션: 작업 언어에 따라 워커를 동적 선발 → 가중 종합."""
+"""moa 오케스트레이션: 작업 언어에 따라 워커를 동적 선발 → 가중 종합."""
 import asyncio
 import httpx
 from config import (MOCK, OPENROUTER_API_KEY, OPENROUTER_BASE, MODELS,
@@ -12,7 +12,7 @@ async def _call(model: str, messages: list, temperature: float = 0.7) -> str:
         return f"[mock:{model}] '{last}' 응답"
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "HTTP-Referer": "https://github.com/stanlee7/fugu-kr",
+        "HTTP-Referer": "https://github.com/stanlee7/moa",
     }
     payload = {"model": model, "messages": messages, "temperature": temperature}
     async with httpx.AsyncClient(timeout=120) as client:
@@ -109,11 +109,13 @@ def route(task: str) -> str:
     return "full" if hard else "fast"
 
 
-async def orchestrate(task: str, depth: int = 0, max_depth: int = 1) -> str:
+async def orchestrate(task: str, depth: int = 0, max_depth: int = 1) -> dict:
+    """반환: {"answer": 최종답변, "used": [참여 모델·역할 목록]}"""
     workers = select_workers(task)
 
     if route(task) == "fast":
-        return await _call(workers[0][0], [{"role": "user", "content": task}])
+        ans = await _call(workers[0][0], [{"role": "user", "content": task}])
+        return {"answer": ans, "used": [{"role": "단독 응답", "model": workers[0][0]}]}
 
     plan = await think(task)
     answers = await work(task, plan, workers)
@@ -122,4 +124,8 @@ async def orchestrate(task: str, depth: int = 0, max_depth: int = 1) -> str:
 
     if depth < max_depth and critique.strip().upper().startswith("INSUFFICIENT"):
         return await orchestrate(f"{task}\n\n[이전 시도 비평]\n{critique}", depth + 1, max_depth)
-    return final
+
+    used = [{"role": "🧠 계획", "model": THINKER}]
+    used += [{"role": "👥 작업", "model": a["model"], "weight": a["weight"]} for a in answers]
+    used += [{"role": "🔍 검증", "model": VERIFIER}, {"role": "✍️ 종합", "model": SYNTHESIZER}]
+    return {"answer": final, "used": used}

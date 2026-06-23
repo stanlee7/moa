@@ -12,7 +12,7 @@ if _env.exists():
         os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
 
 # 기본은 mock — 키 없이도 전체 파이프라인이 돌아감 (구조 학습용)
-MOCK = os.getenv("FUGU_MOCK", "1") == "1"
+MOCK = os.getenv("MOA_MOCK", "1") == "1"
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 # 기본은 OpenRouter. 자가호스팅(vLLM) 시 LLM_BASE_URL 만 바꾸면 코드 수정 0.
