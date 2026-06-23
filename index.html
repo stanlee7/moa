@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fugu-kr · 오픈모델 AI 팀</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root { --bg:#0b0d10; --card:#15181d; --line:#262b33; --fg:#e8eaed; --sub:#9aa3af; --accent:#5b8cff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,'Segoe UI',Roboto,'Apple SD Gothic Neo',sans-serif;
+         background:var(--bg); color:var(--fg); line-height:1.6; }
+  .wrap { max-width:780px; margin:0 auto; padding:40px 20px 80px; }
+  h1 { font-size:26px; margin:0 0 4px; letter-spacing:-.5px; }
+  h1 .fish { font-size:30px; }
+  .tag { color:var(--sub); font-size:14px; margin-bottom:28px; }
+  .tag b { color:var(--accent); }
+  textarea { width:100%; min-height:96px; resize:vertical; padding:16px; font-size:15px;
+             background:var(--card); color:var(--fg); border:1px solid var(--line);
+             border-radius:12px; outline:none; }
+  textarea:focus { border-color:var(--accent); }
+  .row { display:flex; gap:10px; margin-top:12px; align-items:center; }
+  button { background:var(--accent); color:#fff; border:0; padding:13px 24px; font-size:15px;
+           font-weight:600; border-radius:10px; cursor:pointer; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .hint { color:var(--sub); font-size:13px; }
+  .out { margin-top:28px; background:var(--card); border:1px solid var(--line);
+         border-radius:12px; padding:24px; display:none; }
+  .out.show { display:block; }
+  .out table { border-collapse:collapse; width:100%; margin:12px 0; font-size:14px; }
+  .out th,.out td { border:1px solid var(--line); padding:8px 10px; text-align:left; }
+  .out h1,.out h2,.out h3 { margin:18px 0 8px; }
+  .out code { background:#0b0d10; padding:2px 6px; border-radius:5px; }
+  .spinner { display:inline-block; width:16px; height:16px; border:2px solid var(--sub);
+             border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .foot { margin-top:40px; color:var(--sub); font-size:13px; text-align:center; }
+  .foot a { color:var(--accent); text-decoration:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><span class="fish">🐡</span> fugu-kr</h1>
+  <p class="tag">하나의 입력 뒤에서 <b>여러 무료 오픈모델이 팀으로 협업</b>합니다 ·
+     계획 → 분담 → 검증 → 종합</p>
+
+  <textarea id="q" placeholder="무엇이든 물어보세요. 예) 2026년 1인 가구를 위한 정부 지원제도를 정리해줘"></textarea>
+  <div class="row">
+    <button id="go" onclick="ask()">보내기</button>
+    <span class="hint" id="hint">답변까지 최대 1분 — 모델들이 순서대로 협업합니다.</span>
+  </div>
+
+  <div class="out" id="out"></div>
+
+  <p class="foot">오픈소스 · <a href="https://github.com/stanlee7/fugu-kr" target="_blank">github.com/stanlee7/fugu-kr</a></p>
+</div>
+
+<script>
+async function ask() {
+  const q = document.getElementById('q').value.trim();
+  if (!q) return;
+  const btn = document.getElementById('go');
+  const out = document.getElementById('out');
+  const hint = document.getElementById('hint');
+  btn.disabled = true;
+  hint.innerHTML = '<span class="spinner"></span> 모델들이 협업 중... (최대 1분)';
+  out.className = 'out'; out.innerHTML = '';
+  try {
+    const res = await fetch('/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'fugu-kr', messages: [{ role: 'user', content: q }] })
+    });
+    if (!res.ok) throw new Error('서버 응답 ' + res.status);
+    const data = await res.json();
+    const md = data.choices[0].message.content;
+    out.innerHTML = window.marked ? marked.parse(md) : md.replace(/\n/g, '<br>');
+    out.className = 'out show';
+    hint.textContent = '완료 ✓';
+  } catch (e) {
+    out.textContent = '오류: ' + e.message + ' (무료 모델 호출 한도일 수 있어요. 잠시 후 다시 시도)';
+    out.className = 'out show';
+    hint.textContent = '';
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>

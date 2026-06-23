@@ -47,6 +47,17 @@ curl http://localhost:8080/v1/chat/completions \
   -d '{"model":"fugu-kr","messages":[{"role":"user","content":"한국이 오픈소스로 프런티어급 서비스를 만들 수 있을까? 근거와 함께 분석해줘"}]}'
 ```
 
+## 일반인에게 배포 (Render 무료)
+
+브라우저에서 누구나 쓰게 하려면 — `/` 에 웹 화면이 내장돼 있어 서버만 띄우면 끝.
+
+1. [render.com](https://render.com) 가입(GitHub 로그인) → **New → Blueprint**
+2. 이 repo 선택 → `render.yaml` 자동 인식 → **Apply**
+3. 환경변수 **OPENROUTER_API_KEY** 에 본인 키 입력 (한 번)
+4. 몇 분 뒤 `https://fugu-kr.onrender.com` 같은 주소 생성 → 끝
+
+> 무료 플랜은 15분 미사용 시 잠들어 첫 접속이 ~50초 느림(콜드스타트). 무료 모델 호출 한도도 공유됨.
+
 ## 다음 단계 (해자 만들기)
 
 1. **한국어 해자**: 무료 풀엔 한국어 특화 모델이 없음 → EXAONE/SOLAR를 유료 또는 자가호스팅으로 Worker에 추가

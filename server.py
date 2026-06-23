@@ -1,11 +1,15 @@
-"""OpenAI 호환 단일 엔드포인트. 클라이언트는 '하나의 모델'로 인식한다."""
+"""OpenAI 호환 단일 엔드포인트 + 일반인용 웹 화면(/)."""
 import time
 import uuid
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from orchestrator import orchestrate
 
 app = FastAPI(title="fugu-kr", description="오픈모델 오케스트레이션 게이트웨이")
+
+_INDEX = Path(__file__).with_name("index.html")
 
 
 class Message(BaseModel):
@@ -18,9 +22,14 @@ class ChatRequest(BaseModel):
     messages: list[Message]
 
 
-@app.get("/")
-async def root():
-    return {"name": "fugu-kr", "status": "ok", "endpoint": "/v1/chat/completions"}
+@app.get("/", response_class=HTMLResponse)
+async def home():
+    return _INDEX.read_text(encoding="utf-8")
+
+
+@app.get("/health")
+async def health():
+    return {"name": "fugu-kr", "status": "ok"}
 
 
 @app.post("/v1/chat/completions")
