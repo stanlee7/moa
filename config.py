@@ -1,4 +1,15 @@
 import os
+from pathlib import Path
+
+# .env 파일이 있으면 자동 로드 (추가 설치 없이 직접 파싱)
+_env = Path(__file__).with_name(".env")
+if _env.exists():
+    for _line in _env.read_text(encoding="utf-8").splitlines():
+        _line = _line.strip()
+        if not _line or _line.startswith("#") or "=" not in _line:
+            continue
+        _k, _v = _line.split("=", 1)
+        os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
 
 # 기본은 mock — 키 없이도 전체 파이프라인이 돌아감 (구조 학습용)
 MOCK = os.getenv("FUGU_MOCK", "1") == "1"
