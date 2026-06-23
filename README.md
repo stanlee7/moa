@@ -22,8 +22,9 @@
 
 - **Thinker / Worker / Verifier** 역할은 Fugu와 동일한 분담.
 - Fugu가 "오케스트레이션을 학습"한 것과 달리, 여기선 **휴리스틱 라우팅**으로 대체 (솔로 현실판).
-- 모델 풀은 `config.py`에서 자유롭게 교체 — GLM·Qwen·Llama·EXAONE·SOLAR 등 **전부 오픈웨이트**.
-- 미국 API 의존 0. 원하면 전부 자가호스팅 가능 → 규제/데이터주권에서 자유.
+- 기본 풀은 **OpenRouter 무료(:free) US 오픈모델** — NVIDIA Nemotron·Poolside 등. 카드 등록 불필요.
+- 더 강한 유료 모델/자체 키를 원하는 사람은 `config.py` 슬러그만 갈아끼우면 됨 (본인 키로).
+- 원하면 전부 자가호스팅 가능 → 규제/데이터주권에서 자유.
 
 ## 실행
 
@@ -33,7 +34,7 @@ pip install -r requirements.txt
 # 1) 키 없이 바로 체험 (mock 모드, 기본값)
 uvicorn server:app --reload --port 8080
 
-# 2) 실제 오픈모델로 (OpenRouter 한 키로 GLM/Qwen/Llama 접근)
+# 2) 무료 US 오픈모델로 (OpenRouter 키만 — 카드 등록 불필요)
 cp .env.example .env   # OPENROUTER_API_KEY 입력, FUGU_MOCK=0
 uvicorn server:app --reload --port 8080
 ```
@@ -48,9 +49,9 @@ curl http://localhost:8080/v1/chat/completions \
 
 ## 다음 단계 (해자 만들기)
 
-1. **한국어 특화 풀**: EXAONE / SOLAR 를 Worker에 추가하고, 한국어 작업은 가중치 ↑
+1. **한국어 해자**: 무료 풀엔 한국어 특화 모델이 없음 → EXAONE/SOLAR를 유료 또는 자가호스팅으로 Worker에 추가
 2. **학습된 라우터**: 휴리스틱 → 작은 분류 모델로 교체 (Fugu의 Conductor 방향)
-3. **자가호스팅**: vLLM으로 GLM·Qwen 직접 서빙 → API 의존·데이터주권 완전 해결
+3. **자가호스팅**: vLLM으로 직접 서빙 → API 의존·데이터주권 완전 해결 (SELFHOST.md)
 4. **eval 하니스**: 라우팅 품질을 측정해야 진짜 성능이 올라감
 
 MIT License.
